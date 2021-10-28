@@ -1,4 +1,5 @@
 #include "game.h"
+#include "scene.h"
 
 Game::Game()
 {
@@ -6,6 +7,8 @@ Game::Game()
 
     m_camera.Setup(m_cam_fov, std::forward<Vector3&&>(m_cam_start_pos));
     m_camera.MoveSpeed = m_cam_speed;
+
+    m_scene = std::make_unique<Scene>("res/field.json");
     SetTargetFPS(m_fps);
 }
 
@@ -24,6 +27,7 @@ int Game::run()
         ClearBackground(BLACK);
 
         m_camera.BeginMode3D();
+        m_scene->render();
         DrawCube({0.0f, 3.0f, 0.0f}, 2.0f, 2.0f, 2.0f, RAYWHITE);
         m_camera.EndMode3D();
 

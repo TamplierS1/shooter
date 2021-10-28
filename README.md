@@ -11,8 +11,7 @@ To start the game run `build/shooter` from repo's root:
 ## Dependencies
 
 - [raylib](https://www.raylib.com/) - simple and easy-to-use library for videogames programming.
-- [{fmt}](https://github.com/fmtlib/fmt) - a modern formatting library. 
-- [Nuklear](https://github.com/Immediate-Mode-UI/Nuklear) - a single-header 
-  ANSI C immediate mode cross-platform GUI library.
+- [{fmt}](https://github.com/fmtlib/fmt) - modern formatting library. 
+- [json](https://github.com/nlohmann/json) - JSON parser.  
 
 Only Linux is supported.

@@ -3,6 +3,8 @@
 #include "raylib.h"
 #include "FPCamera.h"
 
+#include "scene.h"
+
 class Game
 {
 public:
@@ -21,4 +23,6 @@ private:
 
     const int m_win_width = 800;
     const int m_win_height = 600;
+
+    std::unique_ptr<Scene> m_scene;
 };

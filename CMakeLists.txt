@@ -30,6 +30,7 @@ list(APPEND CXX_INCLUDE_DIRS
         "third_party/fmt/include"
         "third_party/raylib/src"
         "third_party/rlextras"
+        "third_party/json/single_include"
         "include")
 
 find_package(fmt

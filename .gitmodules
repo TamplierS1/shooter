@@ -6,3 +6,6 @@
 	path = third_party/raylib
 	url = https://github.com/raysan5/raylib.git
 	ignore = dirty
+[submodule "third_party/json"]
+	path = third_party/json
+	url = https://github.com/nlohmann/json
