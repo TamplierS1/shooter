@@ -1,5 +1,6 @@
 #include <fstream>
 
+#include "fmt/format.h"
 #include "nlohmann/json.hpp"
 
 #include "scene.h"
@@ -21,19 +22,21 @@ Scene::Scene(std::string_view path)
 
     m_name = scene["Name"];
 
-    for (const auto& model : scene["Models"])
+    for (const auto& object : scene["Objects"])
     {
-        std::string obj_path = model["Path"];
-        Vector3 pos{model["Position"]["x"], model["Position"]["y"],
-                    model["Position"]["z"]};
-        Vector3 rot_axis{model["RotationAxis"]["x"], model["RotationAxis"]["y"],
-                         model["RotationAxis"]["z"]};
-        float rot_angle = model["RotationAngle"];
-        Vector3 scale{model["Scale"]["x"], model["Scale"]["y"], model["Scale"]["z"]};
-        Color color{model["Color"]["r"], model["Color"]["g"], model["Color"]["b"],
-                    model["Color"]["a"]};
+        std::string object_name = object["Name"];
+        std::string model_name = object["ModelName"];
+        Vector3 pos{object["Position"]["x"], object["Position"]["y"],
+                    object["Position"]["z"]};
+        Vector3 rot_axis{object["RotationAxis"]["x"], object["RotationAxis"]["y"],
+                         object["RotationAxis"]["z"]};
+        float rot_angle = object["RotationAngle"];
+        Vector3 scale{object["Scale"]["x"], object["Scale"]["y"], object["Scale"]["z"]};
+        Color color{object["Color"]["r"], object["Color"]["g"], object["Color"]["b"],
+                    object["Color"]["a"]};
 
-        m_models.emplace_back(obj_path, pos, rot_axis, rot_angle, scale, color);
+        m_objects.emplace_back(object_name, model_name, pos, rot_axis, rot_angle, scale,
+                               color);
     }
 
     m_is_loaded = true;
@@ -43,13 +46,25 @@ void Scene::render()
 {
     if (m_is_loaded)
     {
-        for (auto& model : m_models)
+        for (auto& object : m_objects)
         {
-            model.render();
+            object.render();
         }
     }
 }
 
-void Scene::serialize() const
+void Scene::serialize(std::string_view path_to_dir) const
 {
+    std::ofstream file{fmt::format("{}/{}.json", path_to_dir, m_name)};
+
+    json scene;
+    scene["Name"] = m_name;
+    scene["Objects"] = {};
+
+    for (const auto& object : m_objects)
+    {
+        scene["Objects"].push_back(object.serialize());
+    }
+
+    file << scene;
 }
