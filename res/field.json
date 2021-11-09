@@ -1,13 +1,11 @@
 {
-  "Name": "Field",
-  "Models": [
-    {
-      "Path": "models/cube.obj",
-      "Position": {"x": 0.0, "y": 0.0, "z": 0.0},
-      "RotationAxis": {"x": 0.0, "y":  0.0, "z":  0.0},
-      "RotationAngle": 0.0,
-      "Scale": {"x": 1.0, "y": 10.0, "z": 1.0},
-      "Color": {"r": 0, "g": 255, "b": 255, "a": 255}
-    }
-  ]
+    "Name" : "Field", "Objects" : [ {
+        "Name" : "white_cube",
+        "ModelName" : "cube",
+        "Position" : {"x" : 0.0, "y" : 0.0, "z" : 0.0},
+        "RotationAxis" : {"x" : 0.0, "y" : 0.0, "z" : 0.0},
+        "RotationAngle" : 0.0,
+        "Scale" : {"x" : 1.0, "y" : 1.0, "z" : 1.0},
+        "Color" : {"r" : 255, "g" : 0, "b" : 255, "a" : 255}
+    } ]
 }
