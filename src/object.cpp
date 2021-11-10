@@ -1,8 +1,18 @@
 #include "object.h"
 #include "asset_manager.h"
 
+static Color imgui_color_to_raylib(const ImGuiColor& im_color)
+{
+    Color r_color;
+    r_color.r = static_cast<unsigned char>(im_color.r * 255);
+    r_color.g = static_cast<unsigned char>(im_color.g * 255);
+    r_color.b = static_cast<unsigned char>(im_color.b * 255);
+    r_color.a = static_cast<unsigned char>(im_color.a * 255);
+    return r_color;
+}
+
 Object::Object(const std::string& object_name, const std::string& model_name, Vector3 pos,
-               Vector3 rot_axis, float rot_angle, Vector3 scale, Color color)
+               Vector3 rot_axis, float rot_angle, Vector3 scale, ImGuiColor color)
     : m_name(object_name)
     , m_model_name(model_name)
     , m_pos(pos)
@@ -17,7 +27,7 @@ Object::Object(const std::string& object_name, const std::string& model_name, Ve
 
 void Object::render()
 {
-    DrawModelEx(*m_model.lock(), m_pos, m_rotation_axis, m_angle, m_scale, m_color);
+    DrawModelEx(*m_model.lock(), m_pos, m_rotation_axis, m_angle, m_scale, imgui_color_to_raylib(m_color));
 }
 
 nlohmann::json Object::serialize() const

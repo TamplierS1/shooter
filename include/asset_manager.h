@@ -18,7 +18,7 @@ public:
         return instance;
     }
 
-    // The path to the directory that contains the models.
+    // 'path' is the directory that contains the models.
     void load_models(std::string_view path);
     // Use this method when you want to access an individual model.
     std::shared_ptr<Model> get_model(const std::string& name);
