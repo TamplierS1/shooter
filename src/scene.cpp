@@ -33,13 +33,18 @@ Scene::Scene(std::string_view path)
         float rot_angle = object["RotationAngle"];
         Vector3 scale{object["Scale"]["x"], object["Scale"]["y"], object["Scale"]["z"]};
         ImGuiColor color{object["Color"]["r"], object["Color"]["g"], object["Color"]["b"],
-                    object["Color"]["a"]};
+                         object["Color"]["a"]};
 
-        m_objects.emplace_back(std::make_shared<Object>(object_name, model_name, pos, rot_axis, rot_angle, scale,
-                               color));
+        m_objects.emplace_back(std::make_shared<Object>(
+            object_name, model_name, pos, rot_axis, rot_angle, scale, color));
     }
 
     m_is_loaded = true;
+}
+
+void Scene::spawn(const std::shared_ptr<Object>& object)
+{
+    m_objects.emplace_back(object);
 }
 
 void Scene::render()

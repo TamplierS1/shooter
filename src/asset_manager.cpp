@@ -11,7 +11,7 @@ void AssetManager::load_models(std::string_view path)
     {
         for (const auto& entry : fs::directory_iterator(path))
         {
-            if (entry.path().extension() == ".obj")
+            if (entry.path().extension() == ".glb")
             {
                 std::string model_name = entry.path().stem();
                 if (m_models.contains(model_name))
