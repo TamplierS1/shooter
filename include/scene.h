@@ -17,7 +17,7 @@ public:
     void render();
     void serialize(std::string_view path_to_dir) const;
 
-    std::vector<Object> m_objects;
+    std::vector<std::shared_ptr<Object>> m_objects;
 
 private:
     std::string m_name = "default_scene";
