@@ -15,12 +15,17 @@ public:
     int run();
 
 private:
+    void handle_input();
     void render_scene();
     void render_gui();
     void render_file_browser(bool is_visible);
+    void render_spawn_menu(bool is_visible);
+    void render_object_menu();
 
     void serialize() const;
     void load_scene(std::string_view path);
+    [[nodiscard]] std::shared_ptr<Object> create_default_object(
+            const std::string &model_name) const;
 
     bool m_is_active = true;
 
@@ -29,4 +34,5 @@ private:
     TPOrbitCamera m_camera;
 
     std::unique_ptr<Scene> m_scene;
+    std::shared_ptr<Object> m_selected_object;
 };

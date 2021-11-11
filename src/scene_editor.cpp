@@ -1,6 +1,7 @@
 #include <experimental/filesystem>
 
 #include "raylib.h"
+#include "raymath.h"
 #include "rlImGui.h"
 #include "imgui.h"
 #include "fmt/core.h"
@@ -10,7 +11,35 @@
 
 namespace fs = std::experimental::filesystem;
 
-bool files_getter(void* data, int idx, const char** out_text)
+// 'extension' is the file extension to look for.
+static std::vector<std::string> parse_directory(std::string_view dir_path,
+                                                std::string_view extension)
+{
+    std::vector<std::string> files;
+
+    for (const auto& entry : fs::directory_iterator(dir_path))
+    {
+        if (entry.path().extension() == extension)
+        {
+            files.emplace_back(entry.path().stem());
+        }
+    }
+
+    return files;
+}
+
+static int input_text_resize_callback(ImGuiInputTextCallbackData* data)
+{
+    if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
+    {
+        auto* str = reinterpret_cast<std::string*>(data->UserData);
+        str->resize(data->BufTextLen);
+        data->Buf = str->data();
+    }
+    return 0;
+}
+
+static bool files_getter(void* data, int idx, const char** out_text)
 {
     const auto* files = reinterpret_cast<std::vector<std::string>*>(data);
     if (idx < 0 || idx >= files->size())
@@ -27,6 +56,7 @@ SceneEditor::SceneEditor()
     InitTPOrbitCamera(&m_camera, 90, Vector3{0.0f, 0.0f, 0.0f});
     m_camera.MinimumViewY = -90.0f;
     m_camera.MaximumViewY = 90.0f;
+    m_camera.MoveSpeed = {0.0f, 0.0f, 0.0f};
 
     SetTargetFPS(60);
     rlImGuiSetup(true);
@@ -46,6 +76,8 @@ int SceneEditor::run()
 {
     while (!WindowShouldClose())
     {
+        handle_input();
+
         UpdateTPOrbitCamera(&m_camera);
 
         BeginDrawing();
@@ -58,6 +90,51 @@ int SceneEditor::run()
     }
 
     return EXIT_SUCCESS;
+}
+
+void SceneEditor::handle_input()
+{
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+    {
+        auto ray = GetMouseRay(GetMousePosition(), m_camera.ViewCamera);
+
+        for (const auto& object : m_scene->m_objects)
+        {
+            bool found_collision = false;
+
+            // Every object probably has custom transform,
+            // which prevents us from just using `GetRayCollisionModel`.
+            // So the only way to account for custom transform is to use
+            // `GetRayCollisionMesh`.
+            Mesh* meshes = object->m_model.lock()->meshes;
+            for (int i = 0; i < object->m_model.lock()->meshCount; i++)
+            {
+                Matrix transform = MatrixIdentity();
+                transform = MatrixMultiply(
+                    transform,
+                    MatrixScale(object->m_scale.x, object->m_scale.y, object->m_scale.z));
+                transform = MatrixMultiply(
+                    transform, MatrixRotate(object->m_rotation_axis, object->m_angle));
+                transform = MatrixMultiply(
+                    transform,
+                    MatrixTranslate(object->m_pos.x, object->m_pos.y, object->m_pos.z));
+
+                auto collision = GetRayCollisionMesh(
+                    ray, meshes[i],
+                    MatrixMultiply(object->m_model.lock()->transform, transform));
+                if (collision.hit)
+                {
+                    m_selected_object = object;
+                    m_camera.CameraPosition = object->m_pos;
+                    found_collision = true;
+                    break;
+                }
+            }
+
+            if (found_collision)
+                break;
+        }
+    }
 }
 
 void SceneEditor::render_scene()
@@ -77,8 +154,11 @@ void SceneEditor::render_gui()
         serialize();
     }
 
-    bool is_visible = ImGui::Button("Load Scene");
-    render_file_browser(is_visible);
+    bool is_file_browser_visible = ImGui::Button("Load Scene");
+    render_file_browser(is_file_browser_visible);
+    bool is_spawn_menu_visible = ImGui::Button("Spawn Object");
+    render_spawn_menu(is_spawn_menu_visible);
+    render_object_menu();
 
     ImGui::End();
     rlImGuiEnd();
@@ -98,22 +178,14 @@ void SceneEditor::render_file_browser(bool is_visible)
         }
     }
 
-    bool is_open = true;
-    if (ImGui::BeginPopupModal("File Browser", &is_open))
+    if (ImGui::BeginPopup("File Browser"))
     {
         static int item_current = 0;
-        std::vector<std::string> files;
-
-        for (const auto& entry : fs::directory_iterator("res"))
-        {
-            if (entry.path().extension() == ".json")
-            {
-                files.emplace_back(entry.path().stem());
-            }
-        }
+        std::vector<std::string> files = parse_directory("res", ".json");
 
         bool was_scene_loaded = false;
-        if (ImGui::ListBox("##", &item_current, files_getter, &files, files.size(), files.size()))
+        if (ImGui::ListBox("##", &item_current, files_getter, &files, files.size(),
+                           files.size()))
         {
             load_scene(fmt::format("{}/{}.json", "res", files[item_current]));
             was_scene_loaded = true;
@@ -126,6 +198,90 @@ void SceneEditor::render_file_browser(bool is_visible)
     }
 }
 
+void SceneEditor::render_spawn_menu(bool is_visible)
+{
+    static bool old_visibility = false;
+
+    if (old_visibility != is_visible)
+    {
+        old_visibility = is_visible;
+
+        if (is_visible)
+        {
+            ImGui::OpenPopup("Spawn Menu");
+        }
+    }
+
+    ImGui::PushItemWidth(10.0f);
+    if (ImGui::BeginPopup("Spawn Menu"))
+    {
+        static int item_current = 0;
+        std::vector<std::string> files = parse_directory("res/models", ".glb");
+
+        bool was_object_spawned = false;
+        if (ImGui::ListBox("##", &item_current, files_getter, &files, files.size(),
+                           files.size()))
+        {
+            m_scene->spawn(create_default_object(files[item_current]));
+            was_object_spawned = true;
+        }
+
+        ImGui::EndPopup();
+
+        if (was_object_spawned)
+            return;
+    }
+    ImGui::PopItemWidth();
+}
+
+void SceneEditor::render_object_menu()
+{
+    if (m_selected_object != nullptr)
+    {
+        bool is_open = true;
+        if (ImGui::Begin("Object Menu", &is_open))
+        {
+            /* NAME */
+            ImGui::InputText("Name", m_selected_object->m_name.data(),
+                             m_selected_object->m_name.capacity() + 1,
+                             ImGuiInputTextFlags_CallbackResize,
+                             input_text_resize_callback, &m_selected_object->m_name);
+
+            /* MODEL */
+            static int current_model = 0;
+            std::vector<std::string> files = parse_directory("res/models", ".glb");
+            if (ImGui::ListBox("Model", &current_model, files_getter, &files,
+                               files.size(), files.size()))
+            {
+                m_selected_object->m_model_name = files[current_model];
+                m_selected_object->m_model =
+                    AssetManager::get().get_model(files[current_model]);
+            }
+
+            /* POSITION */
+            ImGui::DragFloat3("Position",
+                              reinterpret_cast<float*>(&m_selected_object->m_pos), 0.2f,
+                              -1000.0f, 1000.0f, "%.2f");
+            /* ROTATION AXIS */
+            ImGui::DragFloat3(
+                "Rotation Axis",
+                reinterpret_cast<float*>(&m_selected_object->m_rotation_axis), 0.01f,
+                0.0f, 1.0f, "%.2f");
+            /* ROTATION ANGLE */
+            ImGui::DragFloat("Rotation Angle", &m_selected_object->m_angle, 2.0f, 0.0f,
+                             360.0f, "%f");
+            /* SCALE */
+            ImGui::DragFloat3("Scale",
+                              reinterpret_cast<float*>(&m_selected_object->m_scale), 0.1f,
+                              1.0f, 100.0f, "%.2f");
+            /* COLOR */
+            ImGui::ColorEdit4("Color",
+                              reinterpret_cast<float*>(&m_selected_object->m_color));
+        }
+        ImGui::End();
+    }
+}
+
 void SceneEditor::serialize() const
 {
     m_scene->serialize("res");
@@ -134,4 +290,16 @@ void SceneEditor::serialize() const
 void SceneEditor::load_scene(std::string_view path)
 {
     m_scene = std::make_unique<Scene>(path);
+}
+
+std::shared_ptr<Object> SceneEditor::create_default_object(
+    const std::string& model_name) const
+{
+    static int default_object_num = 1;
+    auto object = std::make_shared<Object>(
+        fmt::format("object{}", default_object_num), model_name, m_camera.CameraPosition,
+        Vector3{0.0f, 0.0f, 0.0f}, 0.0f, Vector3{1.0f, 1.0f, 1.0f},
+        ImGuiColor{1.0f, 1.0f, 1.0f, 1.0f});
+    default_object_num++;
+    return object;
 }

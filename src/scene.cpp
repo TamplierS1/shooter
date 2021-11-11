@@ -32,14 +32,19 @@ Scene::Scene(std::string_view path)
                          object["RotationAxis"]["z"]};
         float rot_angle = object["RotationAngle"];
         Vector3 scale{object["Scale"]["x"], object["Scale"]["y"], object["Scale"]["z"]};
-        Color color{object["Color"]["r"], object["Color"]["g"], object["Color"]["b"],
-                    object["Color"]["a"]};
+        ImGuiColor color{object["Color"]["r"], object["Color"]["g"], object["Color"]["b"],
+                         object["Color"]["a"]};
 
-        m_objects.emplace_back(object_name, model_name, pos, rot_axis, rot_angle, scale,
-                               color);
+        m_objects.emplace_back(std::make_shared<Object>(
+            object_name, model_name, pos, rot_axis, rot_angle, scale, color));
     }
 
     m_is_loaded = true;
+}
+
+void Scene::spawn(const std::shared_ptr<Object>& object)
+{
+    m_objects.emplace_back(object);
 }
 
 void Scene::render()
@@ -48,7 +53,7 @@ void Scene::render()
     {
         for (auto& object : m_objects)
         {
-            object.render();
+            object->render();
         }
     }
 }
@@ -63,7 +68,7 @@ void Scene::serialize(std::string_view path_to_dir) const
 
     for (const auto& object : m_objects)
     {
-        scene["Objects"].push_back(object.serialize());
+        scene["Objects"].push_back(object->serialize());
     }
 
     file << scene;
