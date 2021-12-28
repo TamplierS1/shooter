@@ -47,6 +47,19 @@ void Scene::spawn(const std::shared_ptr<Object>& object)
     m_objects.emplace_back(object);
 }
 
+bool Scene::despawn(std::string_view object_name)
+{
+    for (int i = 0; i < m_objects.size(); i++)
+    {
+        if (m_objects[i]->m_name == object_name)
+        {
+            m_objects.erase(m_objects.begin() + i);
+            return true;
+        }
+    }
+    return false;
+}
+
 void Scene::render()
 {
     if (m_is_loaded)

@@ -21,8 +21,8 @@ private:
 
     int m_fps = 60;
 
-    const int m_win_width = 800;
-    const int m_win_height = 600;
+    const int m_win_width = 1920;
+    const int m_win_height = 1080;
 
     std::unique_ptr<Scene> m_scene;
 };

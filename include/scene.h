@@ -15,6 +15,7 @@ public:
     explicit Scene(std::string_view path);
 
     void spawn(const std::shared_ptr<Object>& object);
+    bool despawn(std::string_view object_name);
     void render();
     void serialize(std::string_view path_to_dir) const;
 
