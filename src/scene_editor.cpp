@@ -96,43 +96,48 @@ void SceneEditor::handle_input()
 {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
     {
-        auto ray = GetMouseRay(GetMousePosition(), m_camera.ViewCamera);
-
-        for (const auto& object : m_scene->m_objects)
+        if (!m_scene->m_objects.empty())
         {
-            bool found_collision = false;
+            auto ray = GetMouseRay(GetMousePosition(), m_camera.ViewCamera);
 
-            // Every object probably has custom transform,
-            // which prevents us from just using `GetRayCollisionModel`.
-            // So the only way to account for custom transform is to use
-            // `GetRayCollisionMesh`.
-            Mesh* meshes = object->m_model.lock()->meshes;
-            for (int i = 0; i < object->m_model.lock()->meshCount; i++)
+            std::shared_ptr<Object> closest_object = nullptr;
+            float min_distance = 1000.0f;
+            for (const auto& object : m_scene->m_objects)
             {
-                Matrix transform = MatrixIdentity();
-                transform = MatrixMultiply(
-                    transform,
-                    MatrixScale(object->m_scale.x, object->m_scale.y, object->m_scale.z));
-                transform = MatrixMultiply(
-                    transform, MatrixRotate(object->m_rotation_axis, object->m_angle));
-                transform = MatrixMultiply(
-                    transform,
-                    MatrixTranslate(object->m_pos.x, object->m_pos.y, object->m_pos.z));
-
-                auto collision = GetRayCollisionMesh(
-                    ray, meshes[i],
-                    MatrixMultiply(object->m_model.lock()->transform, transform));
-                if (collision.hit)
+                // Every object probably has custom transform,
+                // which prevents us from just using `GetRayCollisionModel`.
+                // So the only way to account for custom transform is to use
+                // `GetRayCollisionMesh`.
+                Mesh* meshes = object->m_model.lock()->meshes;
+                for (int i = 0; i < object->m_model.lock()->meshCount; i++)
                 {
-                    m_selected_object = object;
-                    m_camera.CameraPosition = object->m_pos;
-                    found_collision = true;
-                    break;
+                    Matrix transform = MatrixIdentity();
+                    transform = MatrixMultiply(
+                        transform, MatrixScale(object->m_scale.x, object->m_scale.y,
+                                               object->m_scale.z));
+                    transform = MatrixMultiply(
+                        transform,
+                        MatrixRotate(object->m_rotation_axis, object->m_angle));
+                    transform = MatrixMultiply(
+                        transform, MatrixTranslate(object->m_pos.x, object->m_pos.y,
+                                                   object->m_pos.z));
+
+                    auto collision = GetRayCollisionMesh(
+                        ray, meshes[i],
+                        MatrixMultiply(object->m_model.lock()->transform, transform));
+                    if (collision.hit && collision.distance <= min_distance)
+                    {
+                        min_distance = collision.distance;
+                        closest_object = object;
+                    }
                 }
             }
 
-            if (found_collision)
-                break;
+            if (closest_object != nullptr)
+            {
+                m_selected_object = closest_object;
+                m_camera.CameraPosition = closest_object->m_pos;
+            }
         }
     }
 }
@@ -277,6 +282,12 @@ void SceneEditor::render_object_menu()
             /* COLOR */
             ImGui::ColorEdit4("Color",
                               reinterpret_cast<float*>(&m_selected_object->m_color));
+
+            if (ImGui::Button("Delete"))
+            {
+                m_scene->despawn(m_selected_object->m_name);
+                m_selected_object = nullptr;
+            }
         }
         ImGui::End();
     }
