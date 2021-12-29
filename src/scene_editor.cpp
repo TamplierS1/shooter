@@ -79,6 +79,7 @@ int SceneEditor::run()
         handle_input();
 
         UpdateTPOrbitCamera(&m_camera);
+        move_object_along_axis(m_selected_object.get());
 
         BeginDrawing();
 
@@ -92,11 +93,31 @@ int SceneEditor::run()
     return EXIT_SUCCESS;
 }
 
+void SceneEditor::move_object_along_axis(Object* object)
+{
+    if (object != nullptr &&
+        (m_move_axis.x != 0 || m_move_axis.y != 0 || m_move_axis.z != 0))
+    {
+        int speed = 5.0f;
+        Vector2 mouse_pos = GetMousePosition();
+        Vector3 distance{
+            mouse_pos.x - m_prev_mouse_pos.x,
+            m_prev_mouse_pos.y - mouse_pos.y,
+            mouse_pos.x - m_prev_mouse_pos.x,
+        };
+        distance = Vector3Scale(distance, GetFrameTime() * speed);
+
+        object->m_pos = Vector3Add(object->m_pos, Vector3Multiply(m_move_axis, distance));
+    }
+    m_prev_mouse_pos = GetMousePosition();
+}
+
 void SceneEditor::handle_input()
 {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
     {
-        if (!m_scene->m_objects.empty())
+        // TODO: move the camera with the selected object when it moves.
+        if (!m_scene->m_objects.empty() && !ImGui::GetIO().WantCaptureMouse)
         {
             auto ray = GetMouseRay(GetMousePosition(), m_camera.ViewCamera);
 
@@ -137,7 +158,33 @@ void SceneEditor::handle_input()
             {
                 m_selected_object = closest_object;
                 m_camera.CameraPosition = closest_object->m_pos;
+
+                m_move_axis = Vector3Zero();
             }
+        }
+    }
+
+    // TODO: add a gizmo that indicates the move axis.
+    if (m_selected_object != nullptr)
+    {
+        if (IsKeyPressed(KEY_W))
+        {
+            m_move_axis = Vector3Zero();
+            m_move_axis.y = 1;
+        }
+        else if (IsKeyPressed(KEY_D))
+        {
+            m_move_axis = Vector3Zero();
+            m_move_axis.x = 1;
+        }
+        else if (IsKeyPressed(KEY_S))
+        {
+            m_move_axis = Vector3Zero();
+            m_move_axis.z = 1;
+        }
+        else if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
+        {
+            m_move_axis = Vector3Zero();
         }
     }
 }

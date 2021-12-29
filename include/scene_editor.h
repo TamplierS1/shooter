@@ -22,10 +22,12 @@ private:
     void render_spawn_menu(bool is_visible);
     void render_object_menu();
 
+    void move_object_along_axis(Object* object);
+
     void serialize() const;
     void load_scene(std::string_view path);
     [[nodiscard]] std::shared_ptr<Object> create_default_object(
-            const std::string &model_name) const;
+        const std::string &model_name) const;
 
     bool m_is_active = true;
 
@@ -35,4 +37,7 @@ private:
 
     std::unique_ptr<Scene> m_scene;
     std::shared_ptr<Object> m_selected_object;
+
+    Vector3 m_move_axis = {0, 0, 0};
+    Vector2 m_prev_mouse_pos = {0, 0};
 };
