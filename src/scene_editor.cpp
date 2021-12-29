@@ -49,6 +49,11 @@ static bool files_getter(void* data, int idx, const char** out_text)
     return true;
 }
 
+static Color vector2color(Vector3 vec)
+{
+    return Color{vec.x, vec.y, vec.z, 255};
+}
+
 SceneEditor::SceneEditor()
 {
     InitWindow(m_win_width, m_win_height, "Scene Editor");
@@ -93,6 +98,13 @@ int SceneEditor::run()
     return EXIT_SUCCESS;
 }
 
+void SceneEditor::render_transform_gizmo()
+{
+    DrawLine3D(m_selected_object->m_pos,
+               Vector3Add(m_selected_object->m_pos, Vector3Scale(m_move_axis, 2)),
+               vector2color(Vector3Scale(m_move_axis, 255)));
+}
+
 void SceneEditor::move_object_along_axis(Object* object)
 {
     if (object != nullptr &&
@@ -116,7 +128,6 @@ void SceneEditor::handle_input()
 {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
     {
-        // TODO: move the camera with the selected object when it moves.
         if (!m_scene->m_objects.empty() && !ImGui::GetIO().WantCaptureMouse)
         {
             auto ray = GetMouseRay(GetMousePosition(), m_camera.ViewCamera);
@@ -164,7 +175,6 @@ void SceneEditor::handle_input()
         }
     }
 
-    // TODO: add a gizmo that indicates the move axis.
     if (m_selected_object != nullptr)
     {
         if (IsKeyPressed(KEY_W))
@@ -193,6 +203,9 @@ void SceneEditor::render_scene()
 {
     BeginMode3D(m_camera.ViewCamera);
     m_scene->render();
+
+    if (m_selected_object != nullptr)
+        render_transform_gizmo();
     EndMode3D();
 }
 
