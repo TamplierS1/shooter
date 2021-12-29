@@ -21,6 +21,7 @@ private:
     void render_file_browser(bool is_visible);
     void render_spawn_menu(bool is_visible);
     void render_object_menu();
+    void render_transform_gizmo();
 
     void move_object_along_axis(Object* object);
 
