@@ -285,13 +285,13 @@ void SceneEditor::render_file_browser(bool is_visible)
     if (ImGui::BeginPopup("File Browser"))
     {
         static int item_current = 0;
-        std::vector<std::string> files = parse_directory("res", ".json");
+        std::vector<std::string> files = parse_directory("res/scenes", ".json");
 
         bool was_scene_loaded = false;
         if (ImGui::ListBox("##", &item_current, files_getter, &files, files.size(),
                            files.size()))
         {
-            load_scene(fmt::format("{}/{}.json", "res", files[item_current]));
+            load_scene(fmt::format("{}/{}.json", "res/scenes", files[item_current]));
             was_scene_loaded = true;
         }
 
@@ -394,7 +394,7 @@ void SceneEditor::render_object_menu()
 
 void SceneEditor::serialize() const
 {
-    m_scene->serialize("res");
+    m_scene->serialize("res/scenes");
 }
 
 void SceneEditor::load_scene(std::string_view path)

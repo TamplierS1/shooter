@@ -5,7 +5,6 @@
 
 #include "raylib.h"
 
-#include "scene_model.h"
 #include "object.h"
 
 class Scene
