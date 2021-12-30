@@ -54,6 +54,16 @@ static Color vector2color(Vector3 vec)
     return Color{vec.x, vec.y, vec.z, 255};
 }
 
+static float get_nonzero_elem(Vector3 vec)
+{
+    if (vec.x != 0.0f)
+        return vec.x;
+    else if (vec.y != 0.0f)
+        return vec.y;
+    else
+        return vec.z;
+}
+
 SceneEditor::SceneEditor()
 {
     InitWindow(m_win_width, m_win_height, "Scene Editor");
@@ -84,7 +94,7 @@ int SceneEditor::run()
         handle_input();
 
         UpdateTPOrbitCamera(&m_camera);
-        move_object_along_axis(m_selected_object.get());
+        update_object_transform(m_selected_object.get());
 
         BeginDrawing();
 
@@ -105,21 +115,39 @@ void SceneEditor::render_transform_gizmo()
                vector2color(Vector3Scale(m_move_axis, 255)));
 }
 
-void SceneEditor::move_object_along_axis(Object* object)
+void SceneEditor::update_object_transform(Object* object)
 {
-    if (object != nullptr &&
-        (m_move_axis.x != 0 || m_move_axis.y != 0 || m_move_axis.z != 0))
+    if (object != nullptr)
     {
-        int speed = 5.0f;
-        Vector2 mouse_pos = GetMousePosition();
-        Vector3 distance{
-            mouse_pos.x - m_prev_mouse_pos.x,
-            m_prev_mouse_pos.y - mouse_pos.y,
-            mouse_pos.x - m_prev_mouse_pos.x,
-        };
-        distance = Vector3Scale(distance, GetFrameTime() * speed);
+        if (m_move_axis.x != 0 || m_move_axis.y != 0 || m_move_axis.z != 0)
+        {
+            int speed = 5.0f;
+            Vector2 mouse_pos = GetMousePosition();
+            Vector3 distance{
+                mouse_pos.x - m_prev_mouse_pos.x,
+                m_prev_mouse_pos.y - mouse_pos.y,
+                mouse_pos.x - m_prev_mouse_pos.x,
+            };
+            distance = Vector3Scale(distance, GetFrameTime() * speed);
 
-        object->m_pos = Vector3Add(object->m_pos, Vector3Multiply(m_move_axis, distance));
+            object->m_pos =
+                Vector3Add(object->m_pos, Vector3Multiply(m_move_axis, distance));
+        }
+        else if (m_rotate_axis.x != 0 || m_rotate_axis.y != 0 || m_rotate_axis.z != 0)
+        {
+            int speed = 5.0f;
+            Vector2 mouse_pos = GetMousePosition();
+            Vector3 distance{
+                mouse_pos.y - m_prev_mouse_pos.y,
+                m_prev_mouse_pos.x - mouse_pos.x,
+                mouse_pos.x - m_prev_mouse_pos.x,
+            };
+            distance = Vector3Scale(distance, GetFrameTime() * speed);
+
+            object->m_rotation_axis =
+                Vector3Normalize(Vector3Add(object->m_rotation_axis, m_rotate_axis));
+            object->m_angle += get_nonzero_elem(Vector3Multiply(m_rotate_axis, distance));
+        }
     }
     m_prev_mouse_pos = GetMousePosition();
 }
@@ -128,6 +156,7 @@ void SceneEditor::handle_input()
 {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
     {
+        // TODO: move this into a separate function.
         if (!m_scene->m_objects.empty() && !ImGui::GetIO().WantCaptureMouse)
         {
             auto ray = GetMouseRay(GetMousePosition(), m_camera.ViewCamera);
@@ -171,6 +200,7 @@ void SceneEditor::handle_input()
                 m_camera.CameraPosition = closest_object->m_pos;
 
                 m_move_axis = Vector3Zero();
+                m_rotate_axis = Vector3Zero();
             }
         }
     }
@@ -179,22 +209,31 @@ void SceneEditor::handle_input()
     {
         if (IsKeyPressed(KEY_W))
         {
-            m_move_axis = Vector3Zero();
-            m_move_axis.y = 1;
+            zero_transform_axises();
+            if (IsKeyDown(KEY_LEFT_SHIFT))
+                m_rotate_axis.x = 1;
+            else
+                m_move_axis.y = 1;
         }
         else if (IsKeyPressed(KEY_D))
         {
-            m_move_axis = Vector3Zero();
-            m_move_axis.x = 1;
+            zero_transform_axises();
+            if (IsKeyDown(KEY_LEFT_SHIFT))
+                m_rotate_axis.y = 1;
+            else
+                m_move_axis.x = 1;
         }
         else if (IsKeyPressed(KEY_S))
         {
-            m_move_axis = Vector3Zero();
-            m_move_axis.z = 1;
+            zero_transform_axises();
+            if (IsKeyDown(KEY_LEFT_SHIFT))
+                m_rotate_axis.z = 1;
+            else
+                m_move_axis.z = 1;
         }
         else if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
         {
-            m_move_axis = Vector3Zero();
+            zero_transform_axises();
         }
     }
 }
@@ -373,4 +412,10 @@ std::shared_ptr<Object> SceneEditor::create_default_object(
         ImGuiColor{1.0f, 1.0f, 1.0f, 1.0f});
     default_object_num++;
     return object;
+}
+
+void SceneEditor::zero_transform_axises()
+{
+    m_rotate_axis = Vector3Zero();
+    m_move_axis = Vector3Zero();
 }

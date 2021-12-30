@@ -23,12 +23,13 @@ private:
     void render_object_menu();
     void render_transform_gizmo();
 
-    void move_object_along_axis(Object* object);
+    void update_object_transform(Object* object);
 
     void serialize() const;
     void load_scene(std::string_view path);
     [[nodiscard]] std::shared_ptr<Object> create_default_object(
-        const std::string &model_name) const;
+        const std::string& model_name) const;
+    void zero_transform_axises();
 
     bool m_is_active = true;
 
@@ -40,5 +41,6 @@ private:
     std::shared_ptr<Object> m_selected_object;
 
     Vector3 m_move_axis = {0, 0, 0};
+    Vector3 m_rotate_axis = {0, 0, 0};
     Vector2 m_prev_mouse_pos = {0, 0};
 };
