@@ -11,7 +11,7 @@ Game::Game()
 
     AssetManager::get().load_models("res/models");
 
-    m_scene = std::make_unique<Scene>("res/Field.json");
+    m_scene = std::make_unique<Scene>("res/scenes/test.json");
 
     SetTargetFPS(m_fps);
 }
