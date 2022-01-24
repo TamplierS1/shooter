@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 
 #include "TPOrbitCamera.h"
 
@@ -30,6 +31,9 @@ private:
     [[nodiscard]] std::shared_ptr<Object> create_default_object(
         const std::string& model_name) const;
     void zero_transform_axises();
+    [[nodiscard]] Vector3 calc_mouse_dist_traveled() const;
+    [[nodiscard]] std::optional<std::shared_ptr<Object>> get_closest_clicked_object()
+        const;
 
     bool m_is_active = true;
 
