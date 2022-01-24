@@ -54,16 +54,6 @@ static Color vector2color(Vector3 vec)
     return Color{vec.x, vec.y, vec.z, 255};
 }
 
-static float get_nonzero_elem(Vector3 vec)
-{
-    if (vec.x != 0.0f)
-        return vec.x;
-    else if (vec.y != 0.0f)
-        return vec.y;
-    else
-        return vec.z;
-}
-
 SceneEditor::SceneEditor()
 {
     InitWindow(m_win_width, m_win_height, "Scene Editor");
@@ -124,21 +114,6 @@ void SceneEditor::update_object_transform(Object* object)
             object->m_pos = Vector3Add(
                 object->m_pos, Vector3Multiply(m_move_axis, calc_mouse_dist_traveled()));
         }
-        else if (m_rotate_axis.x != 0 || m_rotate_axis.y != 0 || m_rotate_axis.z != 0)
-        {
-            int speed = 5.0f;
-            Vector2 mouse_pos = GetMousePosition();
-            Vector3 distance{
-                mouse_pos.y - m_prev_mouse_pos.y,
-                m_prev_mouse_pos.x - mouse_pos.x,
-                mouse_pos.x - m_prev_mouse_pos.x,
-            };
-            distance = Vector3Scale(distance, GetFrameTime() * speed);
-
-            object->m_rotation_axis =
-                Vector3Normalize(Vector3Add(object->m_rotation_axis, m_rotate_axis));
-            object->m_angle += get_nonzero_elem(Vector3Multiply(m_rotate_axis, distance));
-        }
         else if (m_scale_axis.x != 0 || m_scale_axis.y != 0 || m_scale_axis.z != 0)
         {
             object->m_scale =
@@ -160,7 +135,6 @@ void SceneEditor::handle_input()
             m_camera.CameraPosition = closest_object.value()->m_pos;
 
             m_move_axis = Vector3Zero();
-            m_rotate_axis = Vector3Zero();
             m_scale_axis = Vector3Zero();
         }
     }
@@ -170,9 +144,7 @@ void SceneEditor::handle_input()
         if (IsKeyPressed(KEY_W))
         {
             zero_transform_axises();
-            if (IsKeyDown(KEY_LEFT_SHIFT))
-                m_rotate_axis.x = 1;
-            else if (IsKeyDown(KEY_LEFT_CONTROL))
+            if (IsKeyDown(KEY_LEFT_CONTROL))
                 m_scale_axis.y = 1;
             else
                 m_move_axis.y = 1;
@@ -180,9 +152,7 @@ void SceneEditor::handle_input()
         else if (IsKeyPressed(KEY_D))
         {
             zero_transform_axises();
-            if (IsKeyDown(KEY_LEFT_SHIFT))
-                m_rotate_axis.y = 1;
-            else if (IsKeyDown(KEY_LEFT_CONTROL))
+            if (IsKeyDown(KEY_LEFT_CONTROL))
                 m_scale_axis.x = 1;
             else
                 m_move_axis.x = 1;
@@ -190,9 +160,7 @@ void SceneEditor::handle_input()
         else if (IsKeyPressed(KEY_S))
         {
             zero_transform_axises();
-            if (IsKeyDown(KEY_LEFT_SHIFT))
-                m_rotate_axis.z = 1;
-            else if (IsKeyDown(KEY_LEFT_CONTROL))
+            if (IsKeyDown(KEY_LEFT_CONTROL))
                 m_scale_axis.z = 1;
             else
                 m_move_axis.z = 1;
@@ -382,7 +350,6 @@ std::shared_ptr<Object> SceneEditor::create_default_object(
 
 void SceneEditor::zero_transform_axises()
 {
-    m_rotate_axis = Vector3Zero();
     m_move_axis = Vector3Zero();
     m_scale_axis = Vector3Zero();
 }

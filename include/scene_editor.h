@@ -45,7 +45,6 @@ private:
     std::shared_ptr<Object> m_selected_object;
 
     Vector3 m_move_axis = {0, 0, 0};
-    Vector3 m_rotate_axis = {0, 0, 0};
     Vector3 m_scale_axis = {0, 0, 0};
     Vector2 m_prev_mouse_pos = {0, 0};
 };
