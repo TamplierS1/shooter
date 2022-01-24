@@ -126,6 +126,7 @@ void SceneEditor::update_object_transform(Object* object)
             Vector3 distance{
                 mouse_pos.x - m_prev_mouse_pos.x,
                 m_prev_mouse_pos.y - mouse_pos.y,
+                // TODO: change `x` to `y`
                 mouse_pos.x - m_prev_mouse_pos.x,
             };
             distance = Vector3Scale(distance, GetFrameTime() * speed);
@@ -147,6 +148,20 @@ void SceneEditor::update_object_transform(Object* object)
             object->m_rotation_axis =
                 Vector3Normalize(Vector3Add(object->m_rotation_axis, m_rotate_axis));
             object->m_angle += get_nonzero_elem(Vector3Multiply(m_rotate_axis, distance));
+        }
+        else if (m_scale_axis.x != 0 || m_scale_axis.y != 0 || m_scale_axis.z != 0)
+        {
+            int speed = 5.0f;
+            Vector2 mouse_pos = GetMousePosition();
+            Vector3 distance{
+                mouse_pos.x - m_prev_mouse_pos.x,
+                m_prev_mouse_pos.y - mouse_pos.y,
+                mouse_pos.y - m_prev_mouse_pos.y,
+            };
+            distance = Vector3Scale(distance, GetFrameTime() * speed);
+
+            object->m_scale =
+                Vector3Add(object->m_scale, Vector3Multiply(m_scale_axis, distance));
         }
     }
     m_prev_mouse_pos = GetMousePosition();
@@ -212,6 +227,8 @@ void SceneEditor::handle_input()
             zero_transform_axises();
             if (IsKeyDown(KEY_LEFT_SHIFT))
                 m_rotate_axis.x = 1;
+            else if (IsKeyDown(KEY_LEFT_CONTROL))
+                m_scale_axis.y = 1;
             else
                 m_move_axis.y = 1;
         }
@@ -220,6 +237,8 @@ void SceneEditor::handle_input()
             zero_transform_axises();
             if (IsKeyDown(KEY_LEFT_SHIFT))
                 m_rotate_axis.y = 1;
+            else if (IsKeyDown(KEY_LEFT_CONTROL))
+                m_scale_axis.x = 1;
             else
                 m_move_axis.x = 1;
         }
@@ -228,6 +247,8 @@ void SceneEditor::handle_input()
             zero_transform_axises();
             if (IsKeyDown(KEY_LEFT_SHIFT))
                 m_rotate_axis.z = 1;
+            else if (IsKeyDown(KEY_LEFT_CONTROL))
+                m_scale_axis.z = 1;
             else
                 m_move_axis.z = 1;
         }
@@ -418,4 +439,5 @@ void SceneEditor::zero_transform_axises()
 {
     m_rotate_axis = Vector3Zero();
     m_move_axis = Vector3Zero();
+    m_scale_axis = Vector3Zero();
 }
