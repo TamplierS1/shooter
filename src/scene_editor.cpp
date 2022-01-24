@@ -121,18 +121,8 @@ void SceneEditor::update_object_transform(Object* object)
     {
         if (m_move_axis.x != 0 || m_move_axis.y != 0 || m_move_axis.z != 0)
         {
-            int speed = 5.0f;
-            Vector2 mouse_pos = GetMousePosition();
-            Vector3 distance{
-                mouse_pos.x - m_prev_mouse_pos.x,
-                m_prev_mouse_pos.y - mouse_pos.y,
-                // TODO: change `x` to `y`
-                mouse_pos.x - m_prev_mouse_pos.x,
-            };
-            distance = Vector3Scale(distance, GetFrameTime() * speed);
-
-            object->m_pos =
-                Vector3Add(object->m_pos, Vector3Multiply(m_move_axis, distance));
+            object->m_pos = Vector3Add(
+                object->m_pos, Vector3Multiply(m_move_axis, calc_mouse_dist_traveled()));
         }
         else if (m_rotate_axis.x != 0 || m_rotate_axis.y != 0 || m_rotate_axis.z != 0)
         {
@@ -151,17 +141,9 @@ void SceneEditor::update_object_transform(Object* object)
         }
         else if (m_scale_axis.x != 0 || m_scale_axis.y != 0 || m_scale_axis.z != 0)
         {
-            int speed = 5.0f;
-            Vector2 mouse_pos = GetMousePosition();
-            Vector3 distance{
-                mouse_pos.x - m_prev_mouse_pos.x,
-                m_prev_mouse_pos.y - mouse_pos.y,
-                mouse_pos.y - m_prev_mouse_pos.y,
-            };
-            distance = Vector3Scale(distance, GetFrameTime() * speed);
-
             object->m_scale =
-                Vector3Add(object->m_scale, Vector3Multiply(m_scale_axis, distance));
+                Vector3Add(object->m_scale,
+                           Vector3Multiply(m_scale_axis, calc_mouse_dist_traveled()));
         }
     }
     m_prev_mouse_pos = GetMousePosition();
@@ -171,52 +153,15 @@ void SceneEditor::handle_input()
 {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
     {
-        // TODO: move this into a separate function.
-        if (!m_scene->m_objects.empty() && !ImGui::GetIO().WantCaptureMouse)
+        auto closest_object = get_closest_clicked_object();
+        if (closest_object.has_value())
         {
-            auto ray = GetMouseRay(GetMousePosition(), m_camera.ViewCamera);
+            m_selected_object = closest_object.value();
+            m_camera.CameraPosition = closest_object.value()->m_pos;
 
-            std::shared_ptr<Object> closest_object = nullptr;
-            float min_distance = 1000.0f;
-            for (const auto& object : m_scene->m_objects)
-            {
-                // Every object probably has custom transform,
-                // which prevents us from just using `GetRayCollisionModel`.
-                // So the only way to account for custom transform is to use
-                // `GetRayCollisionMesh`.
-                Mesh* meshes = object->m_model.lock()->meshes;
-                for (int i = 0; i < object->m_model.lock()->meshCount; i++)
-                {
-                    Matrix transform = MatrixIdentity();
-                    transform = MatrixMultiply(
-                        transform, MatrixScale(object->m_scale.x, object->m_scale.y,
-                                               object->m_scale.z));
-                    transform = MatrixMultiply(
-                        transform,
-                        MatrixRotate(object->m_rotation_axis, object->m_angle));
-                    transform = MatrixMultiply(
-                        transform, MatrixTranslate(object->m_pos.x, object->m_pos.y,
-                                                   object->m_pos.z));
-
-                    auto collision = GetRayCollisionMesh(
-                        ray, meshes[i],
-                        MatrixMultiply(object->m_model.lock()->transform, transform));
-                    if (collision.hit && collision.distance <= min_distance)
-                    {
-                        min_distance = collision.distance;
-                        closest_object = object;
-                    }
-                }
-            }
-
-            if (closest_object != nullptr)
-            {
-                m_selected_object = closest_object;
-                m_camera.CameraPosition = closest_object->m_pos;
-
-                m_move_axis = Vector3Zero();
-                m_rotate_axis = Vector3Zero();
-            }
+            m_move_axis = Vector3Zero();
+            m_rotate_axis = Vector3Zero();
+            m_scale_axis = Vector3Zero();
         }
     }
 
@@ -440,4 +385,60 @@ void SceneEditor::zero_transform_axises()
     m_rotate_axis = Vector3Zero();
     m_move_axis = Vector3Zero();
     m_scale_axis = Vector3Zero();
+}
+
+[[nodiscard]] Vector3 SceneEditor::calc_mouse_dist_traveled() const
+{
+    int speed = 5.0f;
+    Vector2 mouse_pos = GetMousePosition();
+    Vector3 distance{
+        mouse_pos.x - m_prev_mouse_pos.x,
+        m_prev_mouse_pos.y - mouse_pos.y,
+        mouse_pos.y - m_prev_mouse_pos.y,
+    };
+    return Vector3Scale(distance, GetFrameTime() * speed);
+}
+
+[[nodiscard]] std::optional<std::shared_ptr<Object>>
+SceneEditor::get_closest_clicked_object() const
+{
+    if (!m_scene->m_objects.empty() && !ImGui::GetIO().WantCaptureMouse)
+    {
+        auto ray = GetMouseRay(GetMousePosition(), m_camera.ViewCamera);
+
+        std::optional<std::shared_ptr<Object>> closest_object = std::nullopt;
+        float min_distance = 1000.0f;
+        for (const auto& object : m_scene->m_objects)
+        {
+            // Every object probably has custom transform,
+            // which prevents us from just using `GetRayCollisionModel`.
+            // So the only way to account for custom transform is to use
+            // `GetRayCollisionMesh`.
+            Mesh* meshes = object->m_model.lock()->meshes;
+            for (int i = 0; i < object->m_model.lock()->meshCount; i++)
+            {
+                Matrix transform = MatrixIdentity();
+                transform = MatrixMultiply(
+                    transform,
+                    MatrixScale(object->m_scale.x, object->m_scale.y, object->m_scale.z));
+                transform = MatrixMultiply(
+                    transform, MatrixRotate(object->m_rotation_axis, object->m_angle));
+                transform = MatrixMultiply(
+                    transform,
+                    MatrixTranslate(object->m_pos.x, object->m_pos.y, object->m_pos.z));
+
+                auto collision = GetRayCollisionMesh(
+                    ray, meshes[i],
+                    MatrixMultiply(object->m_model.lock()->transform, transform));
+                if (collision.hit && collision.distance <= min_distance)
+                {
+                    min_distance = collision.distance;
+                    closest_object = object;
+                }
+            }
+        }
+        return closest_object;
+    }
+
+    return std::nullopt;
 }
