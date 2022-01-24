@@ -100,9 +100,18 @@ int SceneEditor::run()
 
 void SceneEditor::render_transform_gizmo()
 {
-    DrawLine3D(m_selected_object->m_pos,
-               Vector3Add(m_selected_object->m_pos, Vector3Scale(m_move_axis, 2)),
-               vector2color(Vector3Scale(m_move_axis, 255)));
+    if (m_move_axis.x != 0 || m_move_axis.y != 0 || m_move_axis.z != 0)
+    {
+        DrawLine3D(m_selected_object->m_pos,
+                   Vector3Add(m_selected_object->m_pos, Vector3Scale(m_move_axis, 2)),
+                   vector2color(Vector3Scale(m_move_axis, 255)));
+    }
+    else if (m_scale_axis.x != 0 || m_scale_axis.y != 0 || m_scale_axis.z != 0)
+    {
+        DrawLine3D(m_selected_object->m_pos,
+                   Vector3Add(m_selected_object->m_pos, Vector3Scale(m_scale_axis, 2)),
+                   vector2color(Vector3Scale(m_scale_axis, 255)));
+    }
 }
 
 void SceneEditor::update_object_transform(Object* object)
@@ -369,6 +378,7 @@ void SceneEditor::zero_transform_axises()
 [[nodiscard]] std::optional<std::shared_ptr<Object>>
 SceneEditor::get_closest_clicked_object() const
 {
+    // TODO: Object's `m_scale` is not take into account here. Fix it.
     if (!m_scene->m_objects.empty() && !ImGui::GetIO().WantCaptureMouse)
     {
         auto ray = GetMouseRay(GetMousePosition(), m_camera.ViewCamera);
